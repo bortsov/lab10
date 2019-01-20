@@ -1,0 +1,239 @@
+
+/*********************************************************************
+*                                                                     
+*       OnProjectLoad                                                 
+*                                                                     
+* Function description                                                
+*   Project load routine. Required.                                   
+*                                                                     
+**********************************************************************
+*/                                                                    
+void OnProjectLoad (void) {
+
+  Project.SetDevice ("Cortex-R4");
+  Project.SetHostIF ("USB", "");
+  Project.SetTargetIF ("JTAG");
+  Project.SetTIFSpeed ("3 MHz");
+  Project.AddSvdFile ("Cortex-R4.svd");
+  File.Open ("objs/debug/motorHw.elf");
+  Project.SetJLinkScript("../utils/JLink/RM4xHercules.JLinkScript");
+}
+
+/*********************************************************************
+*                                                                     
+*      TargetReset                                                    
+*                                                                     
+* Function description                                                
+*   Replaces the default target device reset routine. Optional.       
+*                                                                     
+* Notes                                                               
+*   This example demonstrates the usage when                          
+*   debugging a RAM program on a Cortex-M target device               
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void TargetReset (void) {                                             
+  Util.Log("TargetReset");                                   
+  Exec.Reset();                                                       
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       BeforeTargetReset                                             
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void BeforeTargetReset (void) {                                       
+  Util.Log("BeforeTargetReset");                                   
+}                                                                     
+*/
+
+
+/*********************************************************************
+*                                                                     
+*       AfterTargetReset                                              
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+void AfterTargetReset (void) {                                        
+  Util.Log("Setting PC after reset for RAM code based on .elf startup address");                                   
+                                                                      
+  unsigned int PC;                                                    
+  PC = Elf.GetBaseAddr();
+  Target.SetReg("PC", PC);                                          
+}
+                                                                     
+
+/*********************************************************************
+*                                                                     
+*       DebugStart                                                    
+*                                                                     
+* Function description                                                
+*   Replaces the default debug session startup routine. Optional.     
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void DebugStart (void) {                                              
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       TargetConnect                                                 
+*                                                                     
+* Function description                                                
+*   Replaces the default target device connect routine. Optional.     
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void TargetConnect (void) {                                           
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       BeforeTargetConnect                                           
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void BeforeTargetConnect (void) {                                     
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       AfterTargetConnect                                            
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void AfterTargetConnect (void) {                                      
+  Util.Log("AfterTargetConnect");                                   
+  Debug.Halt();
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       TargetDownload                                                
+*                                                                     
+* Function description                                                
+*   Replaces the default program download routine. Optional.          
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void TargetDownload (void) {                                          
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       BeforeTargetDownload                                          
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void BeforeTargetDownload (void) {                                    
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*      AfterTargetDownload                                            
+*                                                                     
+* Function description                                                
+*   Event handler routine.                                            
+*                                                                     
+* Notes                                                               
+*   This sample implementation demonstrates the application           
+*   initialization on a Cortex-M target.                              
+*   If no initialization can be done, Target.Reset() may be called.   
+*                                                                     
+**********************************************************************
+*/                                                                    
+void AfterTargetDownload (void) {                                     
+  Util.Log("Initializing PC AfterTargetDownload.");                              
+                                                                      
+  unsigned int PC;                                                    
+  PC = Elf.GetBaseAddr();
+  Target.SetReg("PC", PC);                                          
+}
+
+
+/*********************************************************************
+*                                                                     
+*       BeforeTargetDisconnect                                        
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void BeforeTargetDisconnect (void) {                                  
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       AfterTargetDisconnect                                         
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void AfterTargetDisconnect (void) {                                   
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       AfterTargetHalt                                               
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void AfterTargetHalt (void) {                                         
+}                                                                     
+*/
+
+/*********************************************************************
+*                                                                     
+*       BeforeTargetResume                                            
+*                                                                     
+* Function description                                                
+*   Event handler routine. Optional.                                  
+*                                                                     
+**********************************************************************
+*/                                                                    
+/*
+void BeforeTargetResume (void) {                                      
+}                                                                     
+*/

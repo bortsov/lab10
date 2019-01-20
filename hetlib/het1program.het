@@ -1,0 +1,155 @@
+; Program for motor control
+; PWM over N2HET1 module
+
+; VCLK2 frequency must be an integer multiplier of VLCK frequency!
+; MAX all of VCLK frequency is <= 110 MHz for RM48L952, <= 100 MHz for RM44L520
+
+DUMMYPIN        .equ 0  ; просто неиспользуемый контакт; ЦПУ обновит требуемые контакты при инициализации мотора
+TRIG_PIN        .equ 19 ; контакт для триггерирования АЦП (возможен HET1_19)
+INTERNALPIN     .equ 31 ; внутренний контакт, используемый для триггерирования
+
+;---------------------------------Variable Definitions--------------------------
+MAXC      .equ  31 ; Default PWM base period (will be overwritten by CPU)
+ADCT      .equ  ((MAXC + 1) / 2)
+
+
+START:
+
+MOTORPWMCOUNTER:
+; #0
+    CNT    {reg = T, max = MAXC} ; поле CONTROL данной инструкции будет обновлено программой HET
+; инструкция ECMP: TRIG_PIN = 0->1 в начале цикла ШИМ (середина отрицательного импульса), TRIG_PIN = 1->0 через 1 такт VCLK2
+; то есть длительность "1" на контакте TRIG_PIN составит 1 такт VCLK2
+    ECMP   {reg = T, pin = TRIG_PIN, hr_data = 1, hr_lr = HIGH, en_pin_action = ON, ACTION = PULSELO, data = 0}
+    BR     {event = ZERO, next = TRIG1, cond_addr = ENDPERIOD_PWM, reqnum = 1, request = GENREQ}         ; Branch for Updating Signal
+
+
+
+;--DATAFIELDS for PWMs. Placed here for one HTU access to update all three dutys
+DUTY1_DATAFIELD:
+    MOV32  {type = IMTOREG, reg = R, next = DUTY1_UPDATE} ; в datafield этой инструкции находится удвоенная длительность "1" для первого полумоста
+DUTY2_DATAFIELD:
+    MOV32  {type = IMTOREG, reg = R, next = DUTY2_UPDATE} ; в datafield этой инструкции находится удвоенная длительность "1" для второго полумоста
+DUTY3_DATAFIELD:
+    MOV32  {type = IMTOREG, reg = R, next = DUTY3_UPDATE} ; в datafield этой инструкции находится удвоенная длительность "1" для третьего полумоста
+ENDPERIOD_PWM:
+; защита атомарности операции: вначале записываются длительности "1" для каждого полумоста,
+; период ШИМ и половина периода ШИМ, затем даётся команда на применение записанных параметров
+    DJZ    {cond_addr = TRIG1, reg = none, next = DUTY1_DATAFIELD} ; запишите "0x80" в поле datafield данной инструкции для применения новых параметров ШИМ
+
+
+;-------------------------------------------Branch, Update the PWM parameters------------------------------
+DUTY1_UPDATE:
+    SUB    {src1 = REM, src2 = R, dest = S, remote = UPDATED_HALFCYCLE, data = 0}
+    MOV32  {type = REGTOREM, reg = S, remote = SetM1}
+    ADD    {src1 = REM, src2 = R, dest = S, remote = UPDATED_HALFCYCLE, data = 0}
+; #10
+    MOV32  {type = REGTOREM, reg = S, remote = ClearM1, next = DUTY2_DATAFIELD}
+
+DUTY2_UPDATE:
+    SUB    {src1 = REM, src2 = R, dest = S, remote = UPDATED_HALFCYCLE, data = 0}
+    MOV32  {type = REGTOREM, reg = S, remote = SetM2}
+    ADD    {src1 = REM, src2 = R, dest = S, remote = UPDATED_HALFCYCLE, data = 0}
+    MOV32  {type = REGTOREM, reg = S, remote = ClearM2, next = DUTY3_DATAFIELD}
+
+DUTY3_UPDATE:
+    SUB    {src1 = REM, src2 = R, dest = S, remote = UPDATED_HALFCYCLE, data = 0}
+    MOV32  {type = REGTOREM, reg = S, remote = SetM3}
+    ADD    {src1 = REM, src2 = R, dest = S, remote = UPDATED_HALFCYCLE, data = 0}
+    MOV32  {type = REGTOREM, reg = S, remote = ClearM3}
+
+; обновление периода ШИМ из поля control этой инструкции в поле control инструкции CNT задающей период ШИМ
+    MOV64  {remote = MOTORPWMCOUNTER, cntl_val = 0} ; запишите сюда требуемое значение поля CONTROL счётчика, определяющего период ШИМ
+UPDATED_HALFCYCLE:
+; #20
+    MOV32  {remote = TRIG1, type = IMTOREG&REM, reg = NONE} ; запишите сюда половину скважности ШИМ
+
+
+;---------------------------------------------TRIG------------------------------
+TRIG1:
+; ветвление для центрованного ШИМ, в зависимости от того, прошла ли половина ШИМ или не прошла
+    MCMP   {hr_lr = HIGH, en_pin_action = OFF, pin = INTERNALPIN, order = REG_GE_DATA, action = CLEAR, reg = T, data = ADCT, cond_addr = ClearM1}
+
+;-------------------------------------------Deal with the falling edge of PWM_mx1 and rising edge of PWM_mx0-------
+SetM1:
+    ECMP   {hr_lr = HIGH, en_pin_action = ON, pin = DUMMYPIN, action = SET,   reg = T, data = ADCT}
+SetM2:
+    ECMP   {hr_lr = HIGH, en_pin_action = ON, pin = DUMMYPIN, action = SET,   reg = T, data = ADCT}
+SetM3:
+    ECMP   {hr_lr = HIGH, en_pin_action = ON, pin = DUMMYPIN, action = SET,   reg = T, data = ADCT, next = AFTERPWM, cond_addr = AFTERPWM}
+
+;-------------------------------------------Deal with the rising edge of PWM_mx1 and falling edge of PWM_mx0-------
+ClearM1:
+    ECMP   {hr_lr = HIGH, en_pin_action = ON, pin = DUMMYPIN, action = CLEAR, reg = T, data = ADCT} 
+ClearM2:
+    ECMP   {hr_lr = HIGH, en_pin_action = ON, pin = DUMMYPIN, action = CLEAR, reg = T, data = ADCT} 
+ClearM3:
+    ECMP   {hr_lr = HIGH, en_pin_action = ON, pin = DUMMYPIN, action = CLEAR, reg = T, data = ADCT} 
+
+AFTERPWM:
+
+
+
+;---------------------------------------------QEP-------------------------------
+STARTENCODER:
+
+A_ENC     .equ  27		; Signal A from QEP encoder 
+B_ENC     .equ  25		; Signal B from QEP encoder 
+TOTAL_POSITIONS_MINUS_ONE .equ (4000-1) ; total number of positions minus one = 4 * lines - 1; will be owerrited by CPU at initialization stage
+
+; #28
+; next two instructions placed together for easier access from HTU; it is possible to use one HTU request to transfer data field for both instructions
+SUMMARY_ENCODER_POSITION: ; for speed estimator
+    MOV32   {type = IMTOREG, reg = S, next = CHECK_A_FALL}
+REAL_ENCODER_POSITION: ; for rotor position detection
+    CNT     {reg = NONE, max = TOTAL_POSITIONS_MINUS_ONE, next = ENDENCODER} ; plus one for incremental position
+
+;---------------------------check: aFbL  /   aFbH ------------------------------
+CHECK_A_FALL:
+; #30
+    BR     {event = Fall, pin = A_ENC, next = CHECK_A_RISE, cond_addr = PROCESS_A_FALL}
+PROCESS_A_FALL:
+    BR     {event = Low,  pin = B_ENC, next = DO_DECREMENT_ENCODER_POSITION, cond_addr = DO_INCREMENT_ENCODER_POSITION}
+
+;---------------------------check: aRbL  /   aRbH ------------------------------
+CHECK_A_RISE:
+    BR     {event = rise, pin = A_ENC, next = CHECK_B_FALL, cond_addr = PROCESS_A_RISE}
+PROCESS_A_RISE:
+    BR     {event = high, pin = B_ENC, next = DO_DECREMENT_ENCODER_POSITION, cond_addr = DO_INCREMENT_ENCODER_POSITION}
+
+;---------------------------check: bFaL  /   bFaH ------------------------------
+CHECK_B_FALL:
+    BR     {event = Fall, pin = B_ENC, next = CHECK_B_RISE, cond_addr = PROCESS_B_FALL}
+PROCESS_B_FALL:
+    BR     {event = high, pin = A_ENC, next = DO_DECREMENT_ENCODER_POSITION, cond_addr = DO_INCREMENT_ENCODER_POSITION}
+
+;---------------------------check: bRaL  /   bRaH ------------------------------
+CHECK_B_RISE:
+    BR     {event = rise, pin = B_ENC, next = ENDENCODER, cond_addr = PROCESS_B_RISE}
+PROCESS_B_RISE:
+    BR     {event = low,  pin = A_ENC, next = DO_DECREMENT_ENCODER_POSITION, cond_addr = DO_INCREMENT_ENCODER_POSITION}
+
+;-------------------------------------------------------------------------------
+DO_INCREMENT_ENCODER_POSITION: ; come here if need to plus one
+    ADM32  {next = REAL_ENCODER_POSITION, remote = SUMMARY_ENCODER_POSITION, reg = S, type = IM&REGTOREM, data = 0, hr_data = 1} ; plus one for absolute 32-bit position
+
+;-------------------------------------------------------------------------------
+DO_DECREMENT_ENCODER_POSITION: ; come here if need to minus one
+    MOV32  {remote = REAL_ENCODER_POSITION, type = REMTOREG, reg = A}
+; #40
+    ECMP   {reg = A, data = 0, cond_addr = DO_OVERFLOW_DECREMENT_ENCODER_POSITION, en_pin_action = off, pin = A_ENC, hr_lr = LOW} ; just dummy pin with disabled action
+    ADM32  {next = DECREMENT_POSITION_COUNTER, remote = REAL_ENCODER_POSITION, type = IM&REGTOREM, reg = A, data = 0x1FFFFFF} ; minus one
+DO_OVERFLOW_DECREMENT_ENCODER_POSITION:
+    ADM32  {next = DECREMENT_POSITION_COUNTER, remote = REAL_ENCODER_POSITION, type = IM&REGTOREM, reg = A, data = TOTAL_POSITIONS_MINUS_ONE}
+
+DECREMENT_POSITION_COUNTER:
+    ADM32  {remote = SUMMARY_ENCODER_POSITION, reg = S, type = IM&REGTOREM, data = 0x1FFFFFF, hr_data = 0x7F} ; minus one for absolute 25-bit position
+
+ENDENCODER:
+    BR     {event = NOCOND, next = TESTLED, cond_addr = TESTLED, reqnum = 0, request = GENREQ} ; dummy instruction to generate HTU request to update encoder data in TCRAM
+    
+TESTLED:
+    CNT    {reg = A, max = 702124}
+    ECMP   {hr_lr = LOW, en_pin_action = ON, pin = 1, action = CLEAR, reg = A, data = 70312}     
+    ECMP   {hr_lr = LOW, en_pin_action = ON, pin = 1, action = SET, reg = A, data = 0}     
+    BR     {event = NOCOND, next = START, cond_addr = START}
