@@ -38,7 +38,7 @@ static void reset()
 void create()
 {
     reset();
-    setAverages(1);
+    setAverages(20);
 }
 
 

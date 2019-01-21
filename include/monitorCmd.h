@@ -21,13 +21,12 @@ MONITOR_CMD(showcurrents)
 MONITOR_CMD(drv8301)
 
 MONITOR_CMD(menable)
-MONITOR_CMD(mlogcnt)
 MONITOR_CMD(mchl)
-MONITOR_CMD(mfocon)
 MONITOR_CMD(mlogsave)
 MONITOR_CMD(mlogshow)
 MONITOR_CMD(mmode)
-MONITOR_CMD(mrefiq)
-MONITOR_CMD(mrefid)
+MONITOR_CMD(mlogcnt)
+MONITOR_CMD(mw)
+MONITOR_CMD(mwon)
 
 #endif /* INCLUDE_MONITORCMD_H_ */

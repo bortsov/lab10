@@ -75,6 +75,7 @@ static constexpr uint32_t N_EXPECTED_HRC_FOR_HET = 128;
 static constexpr float PREFFERED_PWM_FREQUENCY = 20'000.0F;
 static constexpr uint32_t DEFAULT_FOC_TICKS_FOR_SPEED = 20;
 static constexpr uint32_t DEFAULT_PWM_TICKS_FOR_FOC = 1;
+static constexpr float MAXIMUM_CURRENTS_A = 3.0F;
 
 /* value 10 lead to 10% static error */
 static constexpr int MINIMUM_DELTA_POSITIONS_TO_COUNT_ANGLE_SPEED = 50;
@@ -92,6 +93,7 @@ static float angleSpeedFiltered_epm;
 static float kForMeasureAngleSpeed_epm; /* constant to reduce calculations */
 static float targetId_A;
 static float targetIq_A;
+static float targetAngleSpeed_epm;
 static bool flag1ms;
 static float torque;
 static WORK_MODE workMode;
@@ -119,8 +121,9 @@ static MATH_vec2 IacFiltered;
 static MATH_vec2 Idq;
 static MATH_vec2 Is_alfa_beta;
 static MATH_vec2 phasorEncoder;
-static PiRegul* pidId;
-static PiRegul* pidIq;
+static PiRegul* piId;
+static PiRegul* piIq;
+static PiRegul* piAngleSpeed;
 static het::HET nh;
 
 
@@ -233,6 +236,21 @@ static void updatePwm()
     requestToUpdatePwm();
 }
 
+
+static void runPiParallelController()
+{
+    targetIq_A = pi::runParallel(
+            piAngleSpeed,
+            targetAngleSpeed_epm,
+            angleSpeed_epm);
+}
+
+
+
+static void speedLoop()
+{
+    runPiParallelController();
+}
 
 static void count1ms()
 {
@@ -380,6 +398,10 @@ static float getStreamValueForLogChannel(const int nChannel)
         case 13:    return Is_alfa_beta.value[0];
         case 14:    return Is_alfa_beta.value[1];
         case 15:    return countIsModule();
+        case 16:    return targetAngleSpeed_epm;
+        case 17:    return angleSpeed_epm;
+        case 18:    return angleSpeedFiltered_epm;
+        case 19:    return pi::getIntegrator(piAngleSpeed);
         default:    return 0.0F;
     }
 }
@@ -494,11 +516,13 @@ static void runPiCurrentControllers()
 {
     const auto Id = Idq.value[0];
     const auto Iq = Idq.value[1];
-    const auto Vd_pu = pi::runSeries(pidId, targetId_A, Id);
-    const auto Vq_pu = pi::runSeries(pidIq, targetIq_A, Iq);
+    const auto Vd_pu = pi::runSeries(piId, targetId_A, Id);
+    const auto Vq_pu = pi::runSeries(piIq, targetIq_A, Iq);
     Vdq = {Vd_pu, Vq_pu};
     inversePark = ::ipark::run(phasorEncoder, Vdq);
 }
+
+
 
 
 static void dispatchMotorControlMode()
@@ -508,9 +532,11 @@ static void dispatchMotorControlMode()
             inversePark = {0.1F, 0.0F};
             break;
 
+        case MODE_CLOSE_SPEED_LOOP:         /* no break */
         case MODE_CLOSE_CURRENT_LOOP:
         	runPiCurrentControllers();
         	break;
+
 
         case MODE_OFF: 						/* no break */
         case MODE_GENERATE_ANGLE:			/* no break */
@@ -540,6 +566,10 @@ static void handler(const float i1, const float i3)
         countPhasorEncoder();
         countIdq();
         countTorque();
+
+        if (flag1ms) {
+            speedLoop();
+        }
 
         dispatchMotorControlMode();
 
@@ -748,10 +778,10 @@ static void initHtu()
 
 static void setupDefaultLinkBetweenLogChannelsAndStreams()
 {
-    tableLinkLogChannelsAndStreams[0] = 3;
-    tableLinkLogChannelsAndStreams[1] = 5;
-    tableLinkLogChannelsAndStreams[2] = 7;
-    tableLinkLogChannelsAndStreams[3] = 9;
+    tableLinkLogChannelsAndStreams[0] = 6;
+    tableLinkLogChannelsAndStreams[1] = 4;
+    tableLinkLogChannelsAndStreams[2] = 19;
+    tableLinkLogChannelsAndStreams[3] = 4;
 }
 
 
@@ -799,16 +829,26 @@ void create(
 
     setupDefaultLinkBetweenLogChannelsAndStreams();
 
-    pidId = pi::create();
-    pidIq = pi::create();
-//    constexpr float kp = 0.17F;
-//    constexpr float ki = 0.002F;
+    piId = pi::create();
+    piIq = pi::create();
     constexpr float kp = 0.105F;
     constexpr float ki = 0.09F;
-    pi::setGains(pidId, kp, ki);
-    pi::setGains(pidIq, kp, ki);
-    pi::setMinMax(pidId, -1.0F, 1.0F);
-    pi::setMinMax(pidIq, -1.0F, 1.0F);
+    pi::setGains(piId, kp, ki);
+    pi::setGains(piIq, kp, ki);
+    pi::setMinMax(piId, -1.0F, 1.0F);
+    pi::setMinMax(piIq, -1.0F, 1.0F);
+    targetId_A = 0.0F;
+    targetIq_A = 0.0F;
+
+    piAngleSpeed = pi::create();
+#if 0 /* something working at >400 1/min */
+    constexpr float wkp = 0.001F;
+    constexpr float wki = 0.00001F;
+#endif
+    constexpr float wkp = 0.0001F;
+    constexpr float wki = 0.000005F;
+    pi::setGains(piAngleSpeed, wkp, wki);
+    pi::setMinMax(piAngleSpeed, -MAXIMUM_CURRENTS_A, MAXIMUM_CURRENTS_A);
 
     motorNew::set::runMode(motorNew::MODE_ENCODER_CALIBRATION);
     waitms(500); /* 500 ms to move rotor to default position 0 degree */
@@ -860,6 +900,11 @@ void linkLogChannels(const int nChannel, const int nStream)
 void runMode(const WORK_MODE wm)
 {
     workMode = wm;
+    if (wm == MODE_OFF) {
+        pi::setIntegrator(piAngleSpeed, 0.0F);
+        pi::setIntegrator(piIq, 0.0F);
+        pi::setIntegrator(piId, 0.0F);
+    }
 }
 
 
@@ -872,6 +917,11 @@ void Iq(const float iq_A)
 void Id(const float id_A)
 {
     targetId_A = id_A;
+}
+
+void angleSpeed_epm(const float w)
+{
+    targetAngleSpeed_epm = w;
 }
 } /* namespace set */
 

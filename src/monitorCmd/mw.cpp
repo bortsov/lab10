@@ -1,47 +1,51 @@
 /*
- * mrefid.cpp
+ * mw.cpp
  *
- *  Created on: 3 нояб. 2018 г.
- *      Author: Vit
+ *  Created on: 30 сент. 2018 г.
+ *      Author: Виталий
  */
 
 #include "monitorCmd.h"
+
 #include "uart_baseclass.h"
 #include "Motor/motorNew.h"
+
 
 namespace mon {
 
 static bool func(const char* cmdpar, uart::Uart& cb);
-static constexpr char strHelp[] = "Установка целевого тока Id";
-static constexpr char strParams[] = "i -- целевой ток Id [A]";
+static constexpr char strHelp[] = "Set electrical angle speed";
+static constexpr char strParams[] = "w";
+static constexpr char strParamsDecription[] =
+        "\t[w: electrical angle speed [1/min]]";
 static constexpr Command cmd(
-        "mrefid",
+        "mw",
         strHelp,
         strParams,
+        strParamsDecription,
         func);
 
 
 static bool func(const char* cmdpar, uart::Uart& cb)
 {
     cb << '\n' << strHelp << '\n';
+    const auto p = getSignedFloatValueFromCstring(cmdpar);
     if (isStrEmpty(cmdpar)) {
         cb << "Ошибка: задайте правильное значение";
         return false;
     }
-    const auto p = getSignedFloatValueFromCstring(cmdpar);
-    motorNew::set::Id(p);
+    motorNew::set::angleSpeed_epm(p);
     return true;
 }
 
 
-namespace mrefid {
+namespace mw {
 
 const Command& getCommand()
 {
     return cmd;
 }
 
-} /* namespace mrefid */
+} /* namespace mw */
+
 } /* namespace mon */
-
-

@@ -49,6 +49,7 @@ enum WORK_MODE {
     MODE_TRANSLATE_I_ALPHA_BETA,
     MODE_TRANSLATE_V_DQ,
 	MODE_CLOSE_CURRENT_LOOP,
+	MODE_CLOSE_SPEED_LOOP,
 };
 
 struct PinsMotorInHet {
@@ -71,6 +72,7 @@ namespace set {
     void runMode(const WORK_MODE wm);
     void Iq(const float iq_A);
     void Id(const float id_A);
+    void angleSpeed_epm(const float w);
 } /* namespace set */
 
 

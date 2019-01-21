@@ -34,6 +34,9 @@ static constexpr char strParamsDecription[] =
         "\n\ty=13: Is_alfa"
         "\n\ty=14: Is_beta"
         "\n\ty=15: |Is|"
+        "\n\ty=16: w_ref_epm"
+        "\n\ty=17: w_epm"
+        "\n\ty=18: w_filter_epm"
         ;
 static constexpr Command cmd(
         "mchl",

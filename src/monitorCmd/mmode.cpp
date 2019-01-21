@@ -25,6 +25,7 @@ static constexpr char strParamsDecription[] =
         "\n\tm=3: MODE_TRANSLATE_I_ALPHA_BETA"
         "\n\tm=4: MODE_TRANSLATE_V_DQ"
         "\n\tm=5: MODE_CLOSE_CURRENT_LOOP"
+        "\n\tm=6: MODE_CLOSE_SPEED_LOOP"
         ;
 static constexpr Command cmd(
         "mmode",

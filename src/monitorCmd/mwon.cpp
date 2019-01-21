@@ -1,5 +1,5 @@
 /*
- * mfocon.cpp
+ * mwon.cpp
  *
  *  Created on: 30 сент. 2018 г.
  *      Author: Виталий
@@ -15,9 +15,9 @@
 namespace mon {
 
 static bool func(const char* cmdpar, uart::Uart& cb);
-static constexpr char strHelp[] = "Разрешение работы FOC и/или "
+static constexpr char strHelp[] = "Замыкание контура поддержания угловой скорости и/или "
                                   "старт лога для ЭД";
-static constexpr Command cmd("mfocon", strHelp, func);
+static constexpr Command cmd("mwon", strHelp, func);
 
 
 
@@ -26,17 +26,17 @@ static bool func(const char* cmdpar, uart::Uart& cb)
     cb << '\n' << strHelp << '\n';
 
     logpoint::enable();
-    ::motorNew::set::runMode(motorNew::MODE_CLOSE_CURRENT_LOOP);
+    ::motorNew::set::runMode(motorNew::MODE_CLOSE_SPEED_LOOP);
     return true;
 }
 
-namespace mfocon {
+namespace mwon {
 const Command& getCommand()
 {
     return cmd;
 }
 
-} /* namespace mfocon */
+} /* namespace mwon */
 
 } /* namespace mon */
 
