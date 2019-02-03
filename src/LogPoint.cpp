@@ -10,7 +10,7 @@
 
 namespace logpoint {
 
-static constexpr int MAX_POINTS = 100;
+static constexpr int MAX_POINTS = 1000;
 static constexpr LogPoint ZERO_POINT = {0.0F, 0.0F, 0.0F, 0.0F};
 
 static LogPoint buf[MAX_POINTS];
