@@ -27,6 +27,8 @@ MONITOR_CMD(mlogshow)
 MONITOR_CMD(mmode)
 MONITOR_CMD(mlogcnt)
 MONITOR_CMD(mw)
+MONITOR_CMD(mwki)
+MONITOR_CMD(mwkp)
 MONITOR_CMD(mwon)
 
 #endif /* INCLUDE_MONITORCMD_H_ */
