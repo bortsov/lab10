@@ -73,6 +73,8 @@ namespace set {
     void Iq(const float iq_A);
     void Id(const float id_A);
     void angleSpeed_epm(const float w);
+    void angleSpeedKi(const float ki);
+    void angleSpeedKp(const float kp);
 } /* namespace set */
 
 
@@ -87,6 +89,8 @@ namespace get {
     float           measuredAngleSpeed_epm();
     float           measuredAngleSpeedFiltered_epm();
     int             nStreamForLogChannel(const int n);
+    float           angleSpeedKi();
+    float           angleSpeedKp();
 } /* namespace get */
 
 } /* namespace motorNew */

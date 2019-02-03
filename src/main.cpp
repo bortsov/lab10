@@ -80,6 +80,8 @@ static void registerUsedMonitorCommands(uart::Uart& cb)
     mon::registerCmd(mon::mlogshow::getCommand());
     mon::registerCmd(mon::mmode::getCommand());
     mon::registerCmd(mon::mw::getCommand());
+    mon::registerCmd(mon::mwki::getCommand());
+    mon::registerCmd(mon::mwkp::getCommand());
     mon::registerCmd(mon::mwon::getCommand());
 }
 

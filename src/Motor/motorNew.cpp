@@ -73,14 +73,14 @@ static constexpr float SCALE_HZ_TO_EPM = 60.0F;
 static constexpr int N_PWM = 3;
 static constexpr uint32_t N_EXPECTED_HRC_FOR_HET = 128;
 static constexpr float PREFFERED_PWM_FREQUENCY = 20'000.0F;
-static constexpr uint32_t DEFAULT_FOC_TICKS_FOR_SPEED = 20;
+static constexpr uint32_t DEFAULT_FOC_TICKS_FOR_SPEED = 10;
 static constexpr uint32_t DEFAULT_PWM_TICKS_FOR_FOC = 1;
 static constexpr float MAXIMUM_CURRENTS_A = 3.0F;
 
 /* value 10 lead to 10% static error */
 static constexpr int MINIMUM_DELTA_POSITIONS_TO_COUNT_ANGLE_SPEED = 50;
 
-static constexpr uint32_t MAXIMUM_PWM_CYCLES_FOR_UPDATE_SPEED = 200;
+static constexpr uint32_t MAXIMUM_PWM_CYCLES_FOR_UPDATE_SPEED = DEFAULT_FOC_TICKS_FOR_SPEED;
 
 static PinInterface* enGate;
 static PinInterface* hallSensors[3];
@@ -293,7 +293,7 @@ static float filter(const float w)
 static float countAngleSpeed(const int d, const uint32_t t)
 {
     return static_cast<float>(d) * kForMeasureAngleSpeed_epm
-            / static_cast<float>(counterTimeoutFromEncoder);
+            / static_cast<float>(t);
 }
 
 
@@ -780,8 +780,8 @@ static void setupDefaultLinkBetweenLogChannelsAndStreams()
 {
     tableLinkLogChannelsAndStreams[0] = 6;
     tableLinkLogChannelsAndStreams[1] = 4;
-    tableLinkLogChannelsAndStreams[2] = 19;
-    tableLinkLogChannelsAndStreams[3] = 4;
+    tableLinkLogChannelsAndStreams[2] = 17;
+    tableLinkLogChannelsAndStreams[3] = 18;
 }
 
 
@@ -845,8 +845,8 @@ void create(
     constexpr float wkp = 0.001F;
     constexpr float wki = 0.00001F;
 #endif
-    constexpr float wkp = 0.0001F;
-    constexpr float wki = 0.000005F;
+    constexpr float wkp = 0.03F;
+    constexpr float wki = 0.001F;
     pi::setGains(piAngleSpeed, wkp, wki);
     pi::setMinMax(piAngleSpeed, -MAXIMUM_CURRENTS_A, MAXIMUM_CURRENTS_A);
 
@@ -923,6 +923,18 @@ void angleSpeed_epm(const float w)
 {
     targetAngleSpeed_epm = w;
 }
+
+void angleSpeedKi(const float ki)
+{
+    pi::setIntegralGain(piAngleSpeed, ki);
+}
+
+
+void angleSpeedKp(const float kp)
+{
+    pi::setProportionalGain(piAngleSpeed, kp);
+}
+
 } /* namespace set */
 
 
@@ -1010,6 +1022,10 @@ float measuredAngleSpeed_epm()
 {
     return angleSpeed_epm;
 }
+
+
+float angleSpeedKi() {return pi::getIntegralGain(piAngleSpeed);}
+float angleSpeedKp() {return pi::getProportionalGain(piAngleSpeed);}
 
 
 float measuredAngleSpeedFiltered_epm()
