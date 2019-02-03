@@ -37,6 +37,7 @@ static constexpr char strParamsDecription[] =
         "\n\ty=16: w_ref_epm"
         "\n\ty=17: w_epm"
         "\n\ty=18: w_filter_epm"
+        "\n\ty=19: integrator from angle speed loop"
         ;
 static constexpr Command cmd(
         "mchl",
