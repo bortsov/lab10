@@ -29,6 +29,8 @@
 #include "modules/ipark/ipark.h"
 #include "modules/clarke/clarke.h"
 #include "modules/pi/pi.h"
+#include "modules/angle_gen/angle_gen.h"
+#include "modules/trajectory/trajectory.h"
 #include "reg_htu.h"
 #include "reg_het.h"
 
@@ -50,8 +52,11 @@ namespace motorNew {
 static constexpr float N_MOTOR_POLUS_PAIRS = 7.0F;
 static constexpr int N_ENCODER_LINES = 500;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
-constexpr float KP_CURRENT_REGULATORS = xx;
-constexpr float KI_CURRENT_REGULATORS = xx;
+static constexpr float KP_CURRENT_REGULATORS = xx;
+static constexpr float KI_CURRENT_REGULATORS = xx;
+static constexpr float MAX_SPEED_EPM = 4800.0F;
+/* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
+static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
 #endif
 
 /*
@@ -60,9 +65,13 @@ constexpr float KI_CURRENT_REGULATORS = xx;
 #if 1
 static constexpr float N_MOTOR_POLUS_PAIRS = 1.0F;
 static constexpr int N_ENCODER_LINES = 1000;
-static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
-constexpr float KP_CURRENT_REGULATORS = 0.105F;
-constexpr float KI_CURRENT_REGULATORS = 0.09F;
+static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.2F;
+static constexpr float KP_CURRENT_REGULATORS = 0.105F;
+static constexpr float KI_CURRENT_REGULATORS = 0.09F;
+static constexpr float MAX_SPEED_EPM = 4800.0F;
+
+/* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
+static constexpr float DEFAULT_ACCELERATION_EPM = 100.0F; /* для отладки временно 100 эл об/мин/с */
 #endif
 
 /*
@@ -72,8 +81,11 @@ constexpr float KI_CURRENT_REGULATORS = 0.09F;
 static constexpr float N_MOTOR_POLUS_PAIRS = 4.0F;
 static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
-constexpr float KP_CURRENT_REGULATORS = 0.105F;
-constexpr float KI_CURRENT_REGULATORS = 0.09F;
+static constexpr float KP_CURRENT_REGULATORS = 0.105F;
+static constexpr float KI_CURRENT_REGULATORS = 0.09F;
+static constexpr float MAX_SPEED_EPM = 4800.0F;
+/* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
+static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
 #endif
 
 
@@ -97,6 +109,10 @@ static float nEncoderPulses; /* for reduce calculations */
 static float nPolePairs;
 static float realPwmFrequency_Hz;
 static float realFocFrequency_Hz;
+static float requestedStatorSpeed_Hz;
+static float generatedStatorAngleSpeed_Hz;
+static int32_t requestedStatorSpeed_epm;
+static int32_t generatedStatorAngleSpeed_epm;
 static float angleSpeed_epm;
 static float angleSpeedFiltered_epm;
 static float kForMeasureAngleSpeed_epm; /* constant to reduce calculations */
@@ -105,6 +121,9 @@ static float targetIq_A;
 static float targetAngleSpeed_epm;
 static float betaAxisVoltageVectorCoordinate = 0.0F;
 static float alfaAxisVoltageVectorCoordinate = 0.0F;
+static float qAxisVoltageVectorCoordinate = 0.0F;
+static float dAxisVoltageVectorCoordinate = 0.0F;
+static trajectory::Trajectory* speedTrajectory;
 static bool flag1ms;
 static float torque;
 static WORK_MODE workMode;
@@ -121,6 +140,7 @@ static volatile uint32_t encoderPositions[2];
 static uint32_t lastSavedEncoderPosition;
 static int counterTimeoutFromEncoder = 0;
 
+static float thetaElectricalAngleGenerator_pu;
 static float thetaElectricalEncoder_pu;
 static float thetaMechanicalEncoder_pu;
 
@@ -132,6 +152,7 @@ static MATH_vec2 IacFiltered;
 static MATH_vec2 Idq;
 static MATH_vec2 Is_alfa_beta;
 static MATH_vec2 phasorEncoder;
+static MATH_vec2 phasorAngleGenerator;
 static PiRegul* piId;
 static PiRegul* piIq;
 static PiRegul* piAngleSpeed;
@@ -404,7 +425,7 @@ static float getStreamValueForLogChannel(const int nChannel)
         case 8:     return Vdq.value[1];
         case 9:     return thetaMechanicalEncoder_pu;
         case 10:    return thetaElectricalEncoder_pu;
-        case 11:    return 0.0F;
+        case 11:    return thetaElectricalAngleGenerator_pu;
         case 12:    return torque;
         case 13:    return Is_alfa_beta.value[0];
         case 14:    return Is_alfa_beta.value[1];
@@ -413,6 +434,8 @@ static float getStreamValueForLogChannel(const int nChannel)
         case 17:    return angleSpeed_epm;
         case 18:    return angleSpeedFiltered_epm;
         case 19:    return pi::getIntegrator(piAngleSpeed);
+        case 20:    return static_cast<float>(requestedStatorSpeed_epm);
+        case 21:    return static_cast<float>(generatedStatorAngleSpeed_epm);
         default:    return 0.0F;
     }
 }
@@ -505,6 +528,17 @@ static void countIs_alfa_beta()
 }
 
 
+static void countPhasorAngleGenerator()
+{
+    phasorAngleGenerator = phasor::createFrom_pu(thetaElectricalAngleGenerator_pu);
+}
+
+static void countThetaElectricalAngleGenerator()
+{
+    angle_gen::run();
+    thetaElectricalAngleGenerator_pu = angle_gen::get_pu();
+}
+
 static void countPhasorEncoder()
 {
     phasorEncoder = phasor::createFrom_pu(thetaElectricalEncoder_pu);
@@ -535,6 +569,23 @@ static void runPiCurrentControllers()
 
 
 
+static void runTrajSpeed()
+{
+    if (flag1ms) {
+        trajectory::setTargetValue(speedTrajectory, requestedStatorSpeed_Hz);
+        trajectory::run(speedTrajectory);
+        const auto newStatorAngleSpeed_Hz = trajectory::getIntermediateValue(
+                speedTrajectory);
+        if (newStatorAngleSpeed_Hz != generatedStatorAngleSpeed_Hz) {
+            generatedStatorAngleSpeed_Hz = newStatorAngleSpeed_Hz;
+            generatedStatorAngleSpeed_epm = roundf(
+                    generatedStatorAngleSpeed_Hz * SCALE_HZ_TO_EPM);
+            angle_gen::setElectricalFrequency_Hz(generatedStatorAngleSpeed_Hz);
+        }
+    }
+}
+
+
 static void dispatchMotorControlMode()
 {
     switch (workMode) {
@@ -554,8 +605,15 @@ static void dispatchMotorControlMode()
                     betaAxisVoltageVectorCoordinate};
             break;
 
+        case MODE_GENERATE_ANGLE:
+            runTrajSpeed();
+            countThetaElectricalAngleGenerator();
+            countPhasorAngleGenerator();
+            Vdq = {dAxisVoltageVectorCoordinate, qAxisVoltageVectorCoordinate};
+            inversePark = ::ipark::run(phasorAngleGenerator, Vdq);
+            break;
+
         case MODE_OFF: 						/* no break */
-        case MODE_GENERATE_ANGLE:			/* no break */
         case MODE_TRANSLATE_V_DQ:			/* no break */
         default:
             inversePark = {0.0F, 0.0F};
@@ -800,6 +858,20 @@ static void setupDefaultLinkBetweenLogChannelsAndStreams()
 }
 
 
+static void setupDefaultTrajectorySpeed()
+{
+    constexpr float MAX_SPEED_HZ = MAX_SPEED_EPM / SCALE_HZ_TO_EPM;
+    constexpr float DEFAULT_ACCELERATION_HZ = DEFAULT_ACCELERATION_EPM
+            / SCALE_HZ_TO_EPM;
+
+    trajectory::setIntValue(speedTrajectory, 0.0F);
+    trajectory::setMaxValue(speedTrajectory, MAX_SPEED_HZ);
+    trajectory::setMinValue(speedTrajectory, -MAX_SPEED_HZ);
+    trajectory::setTargetValue(speedTrajectory, 0.0F);
+    set::accelerationForElectricalAngleSpeed(DEFAULT_ACCELERATION_HZ);
+}
+
+
 
 
 
@@ -816,6 +888,11 @@ void create(
     initPointersToWorkWithMotorBlockInHetProgram();
     setRealPwmFrequency();
     setRealFocLoopFrequency();
+
+    requestedStatorSpeed_Hz = 0.0F;
+    speedTrajectory = trajectory::create();
+    setupDefaultTrajectorySpeed();
+    angle_gen::setRunPeriod_s(1.0F / realFocFrequency_Hz);
 
     updateRealPwmCounterInHetProgram();
     updateRealMediumCompareValueInHetProgram();
@@ -958,6 +1035,30 @@ void debugVoltageBetaAxis(const float voltage)
 void debugVoltageAlfaAxis(const float voltage)
 {
     alfaAxisVoltageVectorCoordinate = voltage;
+}
+
+void debugVoltageQAxis(const float v)
+{
+    qAxisVoltageVectorCoordinate = v;
+}
+
+
+void debugVoltageDAxis(const float v)
+{
+    dAxisVoltageVectorCoordinate = v;
+}
+
+
+void accelerationForElectricalAngleSpeed(const float a)
+{
+    const float delta = a * nFocTicksForSpeedLoop / realFocFrequency_Hz;
+    trajectory::setMaxDelta(speedTrajectory, delta);
+}
+
+void ectricalAngleSpeed_Hz(const float angleSpeed)
+{
+    requestedStatorSpeed_Hz = angleSpeed;
+    requestedStatorSpeed_epm = roundf(angleSpeed * SCALE_HZ_TO_EPM);
 }
 
 

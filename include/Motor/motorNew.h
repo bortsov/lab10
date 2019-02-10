@@ -77,6 +77,10 @@ namespace set {
     void angleSpeedKp(const float kp);
     void debugVoltageAlfaAxis(const float v);
     void debugVoltageBetaAxis(const float v);
+    void debugVoltageQAxis(const float v);
+    void debugVoltageDAxis(const float v);
+    void accelerationForElectricalAngleSpeed(const float a);
+    void ectricalAngleSpeed_Hz(const float angleSpeed);
 } /* namespace set */
 
 
