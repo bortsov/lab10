@@ -54,6 +54,8 @@ static constexpr int N_ENCODER_LINES = 500;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
 static constexpr float KP_CURRENT_REGULATORS = xx;
 static constexpr float KI_CURRENT_REGULATORS = xx;
+static constexpr float KP_SPEED_REGULATOR = 0.03F;
+static constexpr float KI_SPEED_REGULATOR = 0.001F;
 static constexpr float MAX_SPEED_EPM = 4800.0F;
 /* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
 static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
@@ -68,6 +70,8 @@ static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.15F;
 static constexpr float KP_CURRENT_REGULATORS = 0.045; /* 0.009 for 1/20 */
 static constexpr float KI_CURRENT_REGULATORS = 0.444F;
+static constexpr float KP_SPEED_REGULATOR = 0.01F;
+static constexpr float KI_SPEED_REGULATOR = 0.001F;
 static constexpr float MAX_SPEED_EPM = 4800.0F;
 
 /* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
@@ -83,6 +87,8 @@ static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
 static constexpr float KP_CURRENT_REGULATORS = 0.105F;
 static constexpr float KI_CURRENT_REGULATORS = 0.09F;
+static constexpr float KP_SPEED_REGULATOR = 0.03F;
+static constexpr float KI_SPEED_REGULATOR = 0.001F;
 static constexpr float MAX_SPEED_EPM = 4800.0F;
 /* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
 static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
@@ -96,7 +102,7 @@ static constexpr uint32_t N_EXPECTED_HRC_FOR_HET = 128;
 static constexpr float PREFFERED_PWM_FREQUENCY = 20'000.0F;
 static constexpr uint32_t DEFAULT_FOC_TICKS_FOR_SPEED = 10;
 static constexpr uint32_t DEFAULT_PWM_TICKS_FOR_FOC = 1;
-static constexpr float MAXIMUM_CURRENTS_A = 3.0F;
+static constexpr float MAXIMUM_CURRENTS_A = 5.0F;
 
 /* value 10 lead to 10% static error */
 static constexpr int MINIMUM_DELTA_POSITIONS_TO_COUNT_ANGLE_SPEED = 50;
@@ -930,13 +936,7 @@ void create(
     targetIq_A = 0.0F;
 
     piAngleSpeed = pi::create();
-#if 0 /* something working at >400 1/min */
-    constexpr float wkp = 0.001F;
-    constexpr float wki = 0.00001F;
-#endif
-    constexpr float wkp = 0.03F;
-    constexpr float wki = 0.001F;
-    pi::setGains(piAngleSpeed, wkp, wki);
+    pi::setGains(piAngleSpeed, KP_SPEED_REGULATOR, KI_SPEED_REGULATOR);
     pi::setMinMax(piAngleSpeed, -MAXIMUM_CURRENTS_A, MAXIMUM_CURRENTS_A);
 
     motorNew::set::runMode(motorNew::MODE_ENCODER_CALIBRATION);
