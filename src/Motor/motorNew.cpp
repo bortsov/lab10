@@ -434,8 +434,6 @@ static float getStreamValueForLogChannel(const int nChannel)
         case 17:    return angleSpeed_epm;
         case 18:    return angleSpeedFiltered_epm;
         case 19:    return pi::getIntegrator(piAngleSpeed);
-        case 20:    return static_cast<float>(requestedStatorSpeed_epm);
-        case 21:    return static_cast<float>(generatedStatorAngleSpeed_epm);
         default:    return 0.0F;
     }
 }
