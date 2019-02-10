@@ -49,22 +49,25 @@ namespace motorNew {
 #if 0
 static constexpr float N_MOTOR_POLUS_PAIRS = 7.0F;
 static constexpr int N_ENCODER_LINES = 500;
+static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
 #endif
 
 /*
  * Motor Maxon EC-Max 30 + encoder MR
  */
-#if 0
+#if 1
 static constexpr float N_MOTOR_POLUS_PAIRS = 1.0F;
 static constexpr int N_ENCODER_LINES = 1000;
+static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
 #endif
 
 /*
  * Motor Teknic M-2310P-LN-04K
  */
-#if 1
+#if 0
 static constexpr float N_MOTOR_POLUS_PAIRS = 4.0F;
 static constexpr int N_ENCODER_LINES = 1000;
+static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
 #endif
 
 
@@ -94,6 +97,8 @@ static float kForMeasureAngleSpeed_epm; /* constant to reduce calculations */
 static float targetId_A;
 static float targetIq_A;
 static float targetAngleSpeed_epm;
+static float betaAxisVoltageVectorCoordinate = 0.0F;
+static float alfaAxisVoltageVectorCoordinate = 0.0F;
 static bool flag1ms;
 static float torque;
 static WORK_MODE workMode;
@@ -524,12 +529,11 @@ static void runPiCurrentControllers()
 
 
 
-
 static void dispatchMotorControlMode()
 {
     switch (workMode) {
         case MODE_ENCODER_CALIBRATION:
-            inversePark = {0.1F, 0.0F};
+            inversePark = {ENCODER_CALIBRATION_VOTAGE_PU, 0.0F};
             break;
 
         case MODE_CLOSE_SPEED_LOOP:         /* no break */
@@ -538,9 +542,14 @@ static void dispatchMotorControlMode()
         	break;
 
 
+        case MODE_TRANSLATE_V_ALPHA_BETA:
+            inversePark = {
+                    alfaAxisVoltageVectorCoordinate,
+                    betaAxisVoltageVectorCoordinate};
+            break;
+
         case MODE_OFF: 						/* no break */
         case MODE_GENERATE_ANGLE:			/* no break */
-        case MODE_TRANSLATE_I_ALPHA_BETA:	/* no break */
         case MODE_TRANSLATE_V_DQ:			/* no break */
         default:
             inversePark = {0.0F, 0.0F};
@@ -778,9 +787,9 @@ static void initHtu()
 
 static void setupDefaultLinkBetweenLogChannelsAndStreams()
 {
-    tableLinkLogChannelsAndStreams[0] = 6;
-    tableLinkLogChannelsAndStreams[1] = 4;
-    tableLinkLogChannelsAndStreams[2] = 17;
+    tableLinkLogChannelsAndStreams[0] = 0;
+    tableLinkLogChannelsAndStreams[1] = 1;
+    tableLinkLogChannelsAndStreams[2] = 2;
     tableLinkLogChannelsAndStreams[3] = 18;
 }
 
@@ -934,6 +943,19 @@ void angleSpeedKp(const float kp)
 {
     pi::setProportionalGain(piAngleSpeed, kp);
 }
+
+
+void debugVoltageBetaAxis(const float voltage)
+{
+    betaAxisVoltageVectorCoordinate = voltage;
+}
+
+
+void debugVoltageAlfaAxis(const float voltage)
+{
+    alfaAxisVoltageVectorCoordinate = voltage;
+}
+
 
 } /* namespace set */
 

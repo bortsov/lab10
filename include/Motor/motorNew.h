@@ -46,7 +46,7 @@ enum WORK_MODE {
     MODE_OFF,
     MODE_ENCODER_CALIBRATION,
     MODE_GENERATE_ANGLE,
-    MODE_TRANSLATE_I_ALPHA_BETA,
+    MODE_TRANSLATE_V_ALPHA_BETA,
     MODE_TRANSLATE_V_DQ,
 	MODE_CLOSE_CURRENT_LOOP,
 	MODE_CLOSE_SPEED_LOOP,
@@ -75,6 +75,8 @@ namespace set {
     void angleSpeed_epm(const float w);
     void angleSpeedKi(const float ki);
     void angleSpeedKp(const float kp);
+    void debugVoltageAlfaAxis(const float v);
+    void debugVoltageBetaAxis(const float v);
 } /* namespace set */
 
 

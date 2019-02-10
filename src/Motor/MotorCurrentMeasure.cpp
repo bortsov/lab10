@@ -11,7 +11,22 @@
 #include "sys_adc.h"
 #include "rti.h"
 
-#include <cstdint>
+
+
+#if 1 /* work DRV8301-KIT */
+static constexpr float OFFSET_EXT_IA = 2044.72F;
+static constexpr float OFFSET_EXT_IC = 2032.0F;
+static constexpr float EXT_GAIN_A_ADJUST = 1.0F;
+//static constexpr float EXT_GAIN_C_ADJUST = 0.9597F;
+static constexpr float EXT_GAIN_C_ADJUST = 1.029F;
+#endif
+
+#if 0 /* home DRV8301-KIT */
+static constexpr float OFFSET_EXT_IA = 2021.75;
+static constexpr float OFFSET_EXT_IC = 2045.65;
+static constexpr float EXT_GAIN_A_ADJUST = 1.036585F;
+static constexpr float EXT_GAIN_C_ADJUST = 1.0F;
+#endif
 
 
 namespace motorCurrent {
@@ -201,7 +216,6 @@ InternalAdc2::InternalAdc2() :
 
 
 
-
 /*
  * Для работы данной функции необходимо иметь разрешённые прерывания,
  * которые нужны для калибровки смещения
@@ -212,17 +226,8 @@ void create(const float gainMotorCurrentExt)
     constexpr float MAXIMUM_CODE = 4095.0F;
     constexpr float R = 0.002F;
     constexpr float K_REF = VOLTAGE_REFERENCE / (MAXIMUM_CODE * R);
-#if 0 /* for work DRV8301-KIT */
-    constexpr float OFFSET_EXT_IA = 2044.5F;
-    constexpr float OFFSET_EXT_IC = 2031.3F;
-    const float gainExtA = K_REF / gainMotorCurrentExt;
-    const float gainExtC = K_REF / (gainMotorCurrentExt / 1.042F);
-#else /* for home DRV8301-KIT */
-    constexpr float OFFSET_EXT_IA = 2021.75;
-    constexpr float OFFSET_EXT_IC = 2045.65;
-    const float gainExtA = K_REF / (gainMotorCurrentExt * 1.036585F);
-    const float gainExtC = K_REF / gainMotorCurrentExt ;
-#endif
+    const float gainExtA = K_REF / (gainMotorCurrentExt * EXT_GAIN_A_ADJUST);
+    const float gainExtC = K_REF / (gainMotorCurrentExt * EXT_GAIN_C_ADJUST);
 
     adc2 = new InternalAdc2();
     adc2->setOffset(EXT_IA, OFFSET_EXT_IA);
