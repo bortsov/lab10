@@ -65,9 +65,9 @@ static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
 #if 1
 static constexpr float N_MOTOR_POLUS_PAIRS = 1.0F;
 static constexpr int N_ENCODER_LINES = 1000;
-static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.2F;
-static constexpr float KP_CURRENT_REGULATORS = 0.105F;
-static constexpr float KI_CURRENT_REGULATORS = 0.09F;
+static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.15F;
+static constexpr float KP_CURRENT_REGULATORS = 0.045; /* 0.009 for 1/20 */
+static constexpr float KI_CURRENT_REGULATORS = 0.444F;
 static constexpr float MAX_SPEED_EPM = 4800.0F;
 
 /* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
@@ -592,6 +592,11 @@ static void dispatchMotorControlMode()
             break;
 
         case MODE_CLOSE_SPEED_LOOP:         /* no break */
+            if (flag1ms) {
+                speedLoop();
+            }
+            /* no break */
+
         case MODE_CLOSE_CURRENT_LOOP:
         	runPiCurrentControllers();
         	break;
@@ -637,10 +642,6 @@ static void handler(const float i1, const float i3)
         countPhasorEncoder();
         countIdq();
         countTorque();
-
-        if (flag1ms) {
-            speedLoop();
-        }
 
         dispatchMotorControlMode();
 
@@ -849,10 +850,10 @@ static void initHtu()
 
 static void setupDefaultLinkBetweenLogChannelsAndStreams()
 {
-    tableLinkLogChannelsAndStreams[0] = 0;
-    tableLinkLogChannelsAndStreams[1] = 1;
-    tableLinkLogChannelsAndStreams[2] = 2;
-    tableLinkLogChannelsAndStreams[3] = 18;
+    tableLinkLogChannelsAndStreams[0] = 5;
+    tableLinkLogChannelsAndStreams[1] = 3;
+    tableLinkLogChannelsAndStreams[2] = 6;
+    tableLinkLogChannelsAndStreams[3] = 4;
 }
 
 

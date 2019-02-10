@@ -35,5 +35,7 @@ MONITOR_CMD(mvb)
 MONITOR_CMD(mvd)
 MONITOR_CMD(mvq)
 MONITOR_CMD(mf)
+MONITOR_CMD(mrefid)
+MONITOR_CMD(mrefiq)
 
 #endif /* INCLUDE_MONITORCMD_H_ */
