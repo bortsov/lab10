@@ -50,6 +50,8 @@ namespace motorNew {
 static constexpr float N_MOTOR_POLUS_PAIRS = 7.0F;
 static constexpr int N_ENCODER_LINES = 500;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
+constexpr float KP_CURRENT_REGULATORS = xx;
+constexpr float KI_CURRENT_REGULATORS = xx;
 #endif
 
 /*
@@ -59,6 +61,8 @@ static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
 static constexpr float N_MOTOR_POLUS_PAIRS = 1.0F;
 static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
+constexpr float KP_CURRENT_REGULATORS = 0.105F;
+constexpr float KI_CURRENT_REGULATORS = 0.09F;
 #endif
 
 /*
@@ -68,6 +72,8 @@ static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
 static constexpr float N_MOTOR_POLUS_PAIRS = 4.0F;
 static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
+constexpr float KP_CURRENT_REGULATORS = 0.105F;
+constexpr float KI_CURRENT_REGULATORS = 0.09F;
 #endif
 
 
@@ -840,10 +846,8 @@ void create(
 
     piId = pi::create();
     piIq = pi::create();
-    constexpr float kp = 0.105F;
-    constexpr float ki = 0.09F;
-    pi::setGains(piId, kp, ki);
-    pi::setGains(piIq, kp, ki);
+    pi::setGains(piId, KP_CURRENT_REGULATORS, KI_CURRENT_REGULATORS);
+    pi::setGains(piIq, KP_CURRENT_REGULATORS, KI_CURRENT_REGULATORS);
     pi::setMinMax(piId, -1.0F, 1.0F);
     pi::setMinMax(piIq, -1.0F, 1.0F);
     targetId_A = 0.0F;
