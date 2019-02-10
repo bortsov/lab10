@@ -49,6 +49,7 @@ namespace motorNew {
  * Motor ДВМ70М-ЭТ17ШТ
  */
 #if 0
+static constexpr float MAXIMUM_CURRENTS_A = 3.0F;
 static constexpr float N_MOTOR_POLUS_PAIRS = 7.0F;
 static constexpr int N_ENCODER_LINES = 500;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
@@ -65,6 +66,7 @@ static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
  * Motor Maxon EC-Max 30 + encoder MR
  */
 #if 1
+static constexpr float MAXIMUM_CURRENTS_A = 4.4F;
 static constexpr float N_MOTOR_POLUS_PAIRS = 1.0F;
 static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.15F;
@@ -82,6 +84,7 @@ static constexpr float DEFAULT_ACCELERATION_EPM = 100.0F; /* для отладк
  * Motor Teknic M-2310P-LN-04K
  */
 #if 0
+static constexpr float MAXIMUM_CURRENTS_A = 3.0F;
 static constexpr float N_MOTOR_POLUS_PAIRS = 4.0F;
 static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.1F;
@@ -90,6 +93,7 @@ static constexpr float KI_CURRENT_REGULATORS = 0.09F;
 static constexpr float KP_SPEED_REGULATOR = 0.03F;
 static constexpr float KI_SPEED_REGULATOR = 0.001F;
 static constexpr float MAX_SPEED_EPM = 4800.0F;
+
 /* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
 static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
 #endif
@@ -102,7 +106,6 @@ static constexpr uint32_t N_EXPECTED_HRC_FOR_HET = 128;
 static constexpr float PREFFERED_PWM_FREQUENCY = 20'000.0F;
 static constexpr uint32_t DEFAULT_FOC_TICKS_FOR_SPEED = 10;
 static constexpr uint32_t DEFAULT_PWM_TICKS_FOR_FOC = 1;
-static constexpr float MAXIMUM_CURRENTS_A = 5.0F;
 
 /* value 10 lead to 10% static error */
 static constexpr int MINIMUM_DELTA_POSITIONS_TO_COUNT_ANGLE_SPEED = 50;
