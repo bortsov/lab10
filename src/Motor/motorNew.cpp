@@ -66,7 +66,7 @@ static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
  * Motor Maxon EC-Max 30 + encoder MR
  */
 #if 1
-static constexpr float MAXIMUM_CURRENTS_A = 4.4F;
+static constexpr float MAXIMUM_CURRENTS_A = 4.5F;
 static constexpr float N_MOTOR_POLUS_PAIRS = 1.0F;
 static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.15F;
@@ -98,6 +98,17 @@ static constexpr float MAX_SPEED_EPM = 4800.0F;
 static constexpr float DEFAULT_ACCELERATION_EPM = 9600.0F;
 #endif
 
+
+/*
+ * Реальный ток ограничивается одним из параметров:
+ * MAXIMUM_CURRENTS_A
+ * MAXIMUM_CURRENT_REGULATORS_OUT_PU
+ * в зависимости от того, какое ограничение наступит раньше.
+ * TODO: добавить в блок ШИМ предельное значение скважности, при котором
+ * ещё возможно измерение тока в обмотках, при использовании схемы с измерением
+ * тока в нижних плечах силовых ключей.
+ */
+static constexpr float MAXIMUM_CURRENT_REGULATORS_OUT_PU = 0.95F; /* not 1.0 because of unable to measure current for near 100% duty */
 
 static constexpr float SCALE_HZ_TO_EPM = 60.0F;
 
@@ -272,7 +283,8 @@ static void updatePwm()
 {
 /* slow working code */
     for (int i = 0; i < 3; ++i) {
-        pwms[i]->updateDuty(valueRequestMedium * out.value[i]);
+        auto v = static_cast<uint32_t>(valueRequestMedium * out.value[i]);
+        pwms[i]->updateDuty(v);
     }
     requestToUpdatePwm();
 }
@@ -933,8 +945,8 @@ void create(
     piIq = pi::create();
     pi::setGains(piId, KP_CURRENT_REGULATORS, KI_CURRENT_REGULATORS);
     pi::setGains(piIq, KP_CURRENT_REGULATORS, KI_CURRENT_REGULATORS);
-    pi::setMinMax(piId, -1.0F, 1.0F);
-    pi::setMinMax(piIq, -1.0F, 1.0F);
+    pi::setMinMax(piId, -MAXIMUM_CURRENT_REGULATORS_OUT_PU, MAXIMUM_CURRENT_REGULATORS_OUT_PU);
+    pi::setMinMax(piIq, -MAXIMUM_CURRENT_REGULATORS_OUT_PU, MAXIMUM_CURRENT_REGULATORS_OUT_PU);
     targetId_A = 0.0F;
     targetIq_A = 0.0F;
 
