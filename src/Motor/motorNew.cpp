@@ -72,9 +72,11 @@ static constexpr int N_ENCODER_LINES = 1000;
 static constexpr float ENCODER_CALIBRATION_VOTAGE_PU = 0.15F;
 static constexpr float KP_CURRENT_REGULATORS = 0.045; /* 0.009 for 1/20 */
 static constexpr float KI_CURRENT_REGULATORS = 0.444F;
-static constexpr float KP_SPEED_REGULATOR = 0.01F;
+static constexpr float KP_SPEED_REGULATOR = 0.003;//0.01F;
 static constexpr float KI_SPEED_REGULATOR = 0.001F;
 static constexpr float MAX_SPEED_EPM = 4800.0F;
+static constexpr float L = 0.143e-3F / 2.0F;
+static constexpr float PSI_F = 0.015213; /* =2 * Torque_nom / 3 / Zp / I_nom */
 
 /* ускорение "по-умолчанию" составит 9600 электрических об/мин/с */
 static constexpr float DEFAULT_ACCELERATION_EPM = 100.0F; /* для отладки временно 100 эл об/мин/с */
@@ -576,6 +578,21 @@ static void countSpacePwmValue()
 }
 
 
+static void doCompensationCrossCoupling()
+{
+    constexpr float U = 24.0F;
+    const auto Id = Idq.value[0];
+    const auto Iq = Idq.value[1];
+    const float w = angleSpeedFiltered_epm * 2.0F * 3.1415F / 60.0F;
+    const float Ukd = -w * L * Iq;
+    const float Ukd_pu = Ukd / U;
+    const float Ukq = w * (PSI_F + L * Id);
+    const float Ukq_pu = Ukq / U;
+    Vdq.value[0] += Ukd_pu;
+    Vdq.value[1] += Ukq_pu;
+}
+
+
 static void runPiCurrentControllers()
 {
     const auto Id = Idq.value[0];
@@ -583,8 +600,11 @@ static void runPiCurrentControllers()
     const auto Vd_pu = pi::runSeries(piId, targetId_A, Id);
     const auto Vq_pu = pi::runSeries(piIq, targetIq_A, Iq);
     Vdq = {Vd_pu, Vq_pu};
+    doCompensationCrossCoupling();
     inversePark = ::ipark::run(phasorEncoder, Vdq);
 }
+
+
 
 
 
