@@ -17,12 +17,12 @@ namespace mon {
 static bool func(const char* cmdpar, uart::Uart& cb);
 static constexpr char strHelp[] = "Выбор алгоритма управления ЭД";
 static constexpr char strParams[] = "m";
-static constexpr char strParamsDecription[] =
+static constexpr char strParamsDescription[] =
         "\t[m: код алгоритма управления]"
         "\n\tm=0: MODE_OFF"
         "\n\tm=1: MODE_ENCODER_CALIBRATION"
         "\n\tm=2: MODE_GENERATE_ANGLE"
-        "\n\tm=3: MODE_TRANSLATE_I_ALPHA_BETA"
+        "\n\tm=3: MODE_TRANSLATE_V_ALPHA_BETA"
         "\n\tm=4: MODE_TRANSLATE_V_DQ"
         "\n\tm=5: MODE_CLOSE_CURRENT_LOOP"
         "\n\tm=6: MODE_CLOSE_SPEED_LOOP"
@@ -31,7 +31,7 @@ static constexpr Command cmd(
         "mmode",
         strHelp,
         strParams,
-        strParamsDecription,
+        strParamsDescription,
         func);
 
 

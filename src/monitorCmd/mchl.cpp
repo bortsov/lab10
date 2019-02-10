@@ -16,7 +16,7 @@ static bool func(const char* cmdpar, uart::Uart& cb);
 static constexpr char strHelp[] = "Настройка связи между каналом лога"
         " и потоком данных";
 static constexpr char strParams[] = "x y";
-static constexpr char strParamsDecription[] =
+static constexpr char strParamsDescription[] =
         "\t[x: канал лога от 0 до 3, y: номер потока данных]"
         "\n\ty=0: Ia"
         "\n\ty=1: Ib"
@@ -43,7 +43,7 @@ static constexpr Command cmd(
         "mchl",
         strHelp,
         strParams,
-        strParamsDecription,
+        strParamsDescription,
         func);
 
 

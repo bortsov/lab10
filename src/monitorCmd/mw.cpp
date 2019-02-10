@@ -16,13 +16,13 @@ namespace mon {
 static bool func(const char* cmdpar, uart::Uart& cb);
 static constexpr char strHelp[] = "Set electrical angle speed";
 static constexpr char strParams[] = "w";
-static constexpr char strParamsDecription[] =
+static constexpr char strParamsDescription[] =
         "\t[w: electrical angle speed [1/min]]";
 static constexpr Command cmd(
         "mw",
         strHelp,
         strParams,
-        strParamsDecription,
+        strParamsDescription,
         func);
 
 

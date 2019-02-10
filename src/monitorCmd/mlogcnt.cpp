@@ -17,13 +17,13 @@ namespace mon {
 static bool func(const char* cmdpar, uart::Uart& cb);
 static constexpr char strHelp[] = "Выбор периода лога";
 static constexpr char strParams[] = "n";
-static constexpr char strParamsDecription[] =
+static constexpr char strParamsDescription[] =
         "\t[n: число циклов ШИМ для записи лога]";
 static constexpr Command cmd(
         "mlogcnt",
         strHelp,
         strParams,
-        strParamsDecription,
+        strParamsDescription,
         func);
 
 
