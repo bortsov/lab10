@@ -17,7 +17,6 @@
 static constexpr float OFFSET_EXT_IA = 2044.72F;
 static constexpr float OFFSET_EXT_IC = 2032.0F;
 static constexpr float EXT_GAIN_A_ADJUST = 1.0F;
-//static constexpr float EXT_GAIN_C_ADJUST = 0.9597F;
 static constexpr float EXT_GAIN_C_ADJUST = 1.029F;
 #endif
 
