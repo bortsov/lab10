@@ -34,10 +34,13 @@ static constexpr char strParamsDescription[] =
         "\n\ty=13: Is_alfa"
         "\n\ty=14: Is_beta"
         "\n\ty=15: |Is|"
-        "\n\ty=16: w_ref_epm"
-        "\n\ty=17: w_epm"
-        "\n\ty=18: w_filter_epm"
+        "\n\ty=16: target speed"
+        "\n\ty=17: unfiltered angle speed"
+        "\n\ty=18: deep filtered angle speed"
         "\n\ty=19: integrator from angle speed loop"
+        "\n\ty=20: integrator Id"
+        "\n\ty=21: integrator Iq"
+        "\n\ty=22: low filtered angle speed"
         ;
 static constexpr Command cmd(
         "mchl",
