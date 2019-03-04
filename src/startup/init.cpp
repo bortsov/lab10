@@ -346,13 +346,13 @@ static void updateVectorInVimRam(size_t nIrq, void (*vector)())
     getVimRam()[nIrq + 1] = reinterpret_cast<uint32_t>(vector);
 }
 
-extern "C" void registerIrqVectorInVim(size_t nIrq, void (*vector)())
+extern "C" void registerIrqVectorInVim(const int nIrq, void (*vector)())
 {
     updateVectorInVimRam(nIrq, vector);
     vimEnableInterrupt(nIrq, SYS_IRQ);
 }
 
-extern "C" void registerFiqVectorInVim(size_t nIrq, void (*vector)())
+extern "C" void registerFiqVectorInVim(const int nIrq, void (*vector)())
 {
     updateVectorInVimRam(nIrq, vector);
     vimEnableInterrupt(nIrq, SYS_FIQ);

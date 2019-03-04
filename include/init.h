@@ -8,8 +8,6 @@
 #ifndef INCLUDE_INIT_INIT_H_
 #define INCLUDE_INIT_INIT_H_
 
-#include <cstddef>
-
 namespace init {
 
 void pll();
@@ -25,8 +23,8 @@ void internalAdc1();
 
 } /* namespace init */
 
-extern "C" void registerIrqVectorInVim(size_t nIrq, void (*vector)());
-extern "C" void registerFiqVectorInVim(size_t nIrq, void (*vector)());
+extern "C" void registerIrqVectorInVim(const int nIrq, void (* const vector)());
+extern "C" void registerFiqVectorInVim(const int nIrq, void (* const vector)());
 
 
 #endif /* INCLUDE_INIT_INIT_H_ */
